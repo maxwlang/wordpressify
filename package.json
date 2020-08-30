@@ -1,10 +1,11 @@
 {
 	"name": "wordpressify",
 	"version": "0.2.8-14",
-	"description": "A build system designed to automate your WordPress development workflow.",
+	"description": "A tweaked fork of wordpressify",
 	"keywords": [
 		"babel",
 		"boilerplate",
+		"bootstrap",
 		"build",
 		"css",
 		"es6",
@@ -12,36 +13,183 @@
 		"gulp",
 		"javascript",
 		"node",
-		"postcss",
+		"scss",
 		"sass",
+		"stylelint",
+		"eslint",
 		"web",
 		"website",
 		"wordpress",
 		"wordpressify",
-		"workflow"
+		"wordpressifier",
+		"workflow",
+		"webpack"
 	],
 	"homepage": "https://www.wordpressify.co",
 	"repository": "https://github.com/luangjokaj/wordpressify",
-	"main": "./installer/index.js",
-	"bin": {
-		"wordpressify": "./installer/index.js"
-	},
 	"scripts": {
 		"install:wordpress": "gulp setup && gulp install",
 		"dev": "gulp dev",
 		"prod": "gulp prod",
-		"backup": "gulp backup",
-		"lint:css": "stylelint src/**/*.css"
+		"backup": "gulp backup"
 	},
 	"author": "Luan Gjokaj <luan@riangle.com>",
 	"license": "MIT",
 	"dependencies": {
-		"chalk": "^4.1.0",
-		"cherry-grid": "^0.1.30",
-		"commander": "^6.0.0",
-		"download": "^8.0.0",
-		"execa": "^4.0.3",
-		"ora": "^5.0.0",
-		"prompts": "^2.3.2"
-	}
+		"@babel/core": "^7.11.1",
+		"@babel/preset-env": "^7.11.0",
+		"@fortawesome/fontawesome-free": "^5.14.0",
+		"@popperjs/core": "^2.4.4",
+		"aos": "^2.3.4",
+		"beeper": "^2.0.0",
+		"bootstrap": "^4.5.2",
+		"browser-sync": "^2.26.12",
+		"cssnano": "^4.1.10",
+		"del": "^5.1.0",
+		"eslint": "^7.7.0",
+		"fancy-log": "^1.3.3",
+		"gulp": "^4.0.2",
+		"gulp-babel": "^8.0.0",
+		"gulp-connect-php": "^1.0.3",
+		"gulp-csso": "^4.0.1",
+		"gulp-imagemin": "^7.1.0",
+		"gulp-inject-string": "^1.1.2",
+		"gulp-plumber": "^1.2.1",
+		"gulp-postcss": "^8.0.0",
+		"gulp-remote-src": "^0.4.4",
+		"gulp-rename": "^2.0.0",
+		"gulp-sass": "^4.1.0",
+		"gulp-sourcemaps": "^2.6.5",
+		"gulp-uglify": "^3.0.2",
+		"gulp-vinyl-zip": "^2.2.1",
+		"jquery": "^3.5.1",
+		"node-sass": "^4.14.1",
+		"stylelint": "^13.6.1",
+		"stylelint-config-standard": "^20.0.0",
+		"stylelint-scss": "^3.18.0",
+		"sweetalert2": "^9.17.1",
+		"webpack": "^4.44.1",
+		"webpack-stream": "^6.0.0"
+	},
+	"eslintConfig": {
+		"extends": "airbnb-base",
+		"plugins": [
+			"import"
+		],
+		"env": {
+			"es6": true,
+			"browser": true,
+			"node": true,
+			"jquery": true
+		},
+		"globals": {
+			"$": true,
+			"jQuery": true,
+			"swal": true
+		},
+		"parserOptions": {
+			"ecmaVersion": 8
+		},
+		"rules": {
+			"arrow-body-style": [
+				"error",
+				"as-needed"
+			],
+			"arrow-parens": [
+				"warn",
+				"as-needed"
+			],
+			"comma-dangle": [
+				"warn",
+				{
+					"arrays": "always-multiline",
+					"objects": "always",
+					"imports": "never",
+					"exports": "never",
+					"functions": "ignore"
+				}
+			],
+			"consistent-return": 0,
+			"func-names": 0,
+			"global-require": 0,
+			"guard-for-in": 0,
+			"import/extensions": 0,
+			"import/no-extraneous-dependencies": [
+				"error",
+				{
+					"devDependencies": true
+				}
+			],
+			"import/no-unresolved": [
+				"error",
+				{
+					"ignore": [
+						"^bootstrap"
+					]
+				}
+			],
+			"indent": [
+				"error",
+				4,
+				{
+					"SwitchCase": 1
+				}
+			],
+			"linebreak-style": 0,
+			"max-len": 0,
+			"no-bitwise": 0,
+			"no-console": 0,
+			"no-continue": 0,
+			"no-extra-boolean-cast": 0,
+			"no-labels": 0,
+			"no-mixed-operators": 0,
+			"no-multiple-empty-lines": [
+				"warn",
+				{
+					"max": 2,
+					"maxEOF": 1
+				}
+			],
+			"no-param-reassign": 0,
+			"no-plusplus": 0,
+			"no-prototype-builtins": 0,
+			"no-restricted-properties": 0,
+			"no-restricted-syntax": 0,
+			"no-shadow": 0,
+			"no-underscore-dangle": 0,
+			"no-unused-vars": [
+				"warn",
+				{
+					"args": "none"
+				}
+			],
+			"no-use-before-define": 0,
+			"no-useless-escape": 0,
+			"object-shorthand": 0,
+			"padded-blocks": [
+				"error",
+				{
+					"switches": "never"
+				}
+			],
+			"prefer-arrow-callback": 0,
+			"prefer-const": [
+				"warn"
+			],
+			"prefer-template": 0,
+			"radix": [
+				"error",
+				"as-needed"
+			],
+			"strict": [
+				0,
+				"global"
+			]
+		}
+	},
+	"eslintIgnore": [
+		"dist/**/*.js",
+		"public/**/*.js",
+		"src/js/_plugins/**/*.js"
+	]
 }
