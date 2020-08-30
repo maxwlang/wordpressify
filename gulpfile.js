@@ -117,6 +117,7 @@ function copyFontsDev() {
 function stylesDev() {
 	return src('./src/assets/scss/main.scss')
 		.pipe(plumber({ errorHandler: onError }))
+		.pipe(rename('style.css'))
 		.pipe(sourcemaps.init())
 		.pipe(sass.sync({
 			includePaths: [
@@ -125,7 +126,6 @@ function stylesDev() {
 		}).on('error', sass.logError))
 		.pipe(minifyCSS())
 		.pipe(sourcemaps.write('.'))
-		.pipe(rename('style.css'))
 		.pipe(dest(`./build/wordpress/wp-content/themes/${themeName}`))
 		.pipe(browserSync.stream({ match: './build/wordpress/wp-content/themes/${themeName}/**/*.css' }));
 }
