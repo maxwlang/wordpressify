@@ -1,72 +1,28 @@
 const { gulp, series, parallel, dest, src, watch } = require('gulp');
-const babel = require('gulp-babel');
-const beeper = require('beeper');
-const browserSync = require('browser-sync');
-const concat = require('gulp-concat');
-const connect = require('gulp-connect-php');
-const del = require('del');
-const log = require('fancy-log');
-const fs = require('fs');
-const imagemin = require('gulp-imagemin');
-const inject = require('gulp-inject-string');
-const partialimport = require('postcss-easy-import');
-const plumber = require('gulp-plumber');
-const postcss = require('gulp-postcss');
-const postCSSMixins = require('postcss-mixins');
-const postcssPresetEnv = require('postcss-preset-env');
-const remoteSrc = require('gulp-remote-src');
+const webpackStream = require('webpack-stream');
 const sourcemaps = require('gulp-sourcemaps');
-const uglify = require('gulp-uglify');
+const inject = require('gulp-inject-string');
+const remoteSrc = require('gulp-remote-src');
+const connect = require('gulp-connect-php');
+const browserSync = require('browser-sync');
+const imagemin = require('gulp-imagemin');
+const plumber = require('gulp-plumber');
+const minifyCSS = require('gulp-csso');
 const zip = require('gulp-vinyl-zip');
+const rename = require('gulp-rename');
+const babel = require('gulp-babel');
+const webpack = require('webpack');
+const sass = require('gulp-sass');
+const log = require('fancy-log');
+const beeper = require('beeper');
+const del = require('del');
+const fs = require('fs');
+sass.compiler = require('node-sass');
 
 /* -------------------------------------------------------------------------------------------------
 Theme Name
 -------------------------------------------------------------------------------------------------- */
 const themeName = 'wordpressify';
-
-/* -------------------------------------------------------------------------------------------------
-PostCSS Plugins
--------------------------------------------------------------------------------------------------- */
-const pluginsListDev = [
-	partialimport,
-	postCSSMixins,
-	postcssPresetEnv({
-		stage: 0,
-		features: {
-			'nesting-rules': true,
-			'color-mod-function': true,
-			'custom-media': true,
-		},
-	}),
-];
-
-const pluginsListProd = [
-	partialimport,
-	postCSSMixins,
-	postcssPresetEnv({
-		stage: 0,
-		features: {
-			'nesting-rules': true,
-			'color-mod-function': true,
-			'custom-media': true,
-		},
-	}),
-	require('cssnano')({
-		preset: [
-			'default',
-			{
-				discardComments: false,
-			},
-		],
-	}),
-];
-
-/* -------------------------------------------------------------------------------------------------
-Header & Footer JavaScript Boundles
--------------------------------------------------------------------------------------------------- */
-const headerJS = ['./node_modules/jquery/dist/jquery.js'];
-
-const footerJS = ['./src/assets/js/**'];
 
 /* -------------------------------------------------------------------------------------------------
 Installation Tasks
@@ -114,7 +70,7 @@ function devServer() {
 		},
 		() => {
 			browserSync({
-				logPrefix: '🎈 WordPressify',
+				logPrefix: 'WordPressify',
 				proxy: '127.0.0.1:3020',
 				host: '127.0.0.1',
 				port: '3010',
@@ -123,7 +79,7 @@ function devServer() {
 		},
 	);
 
-	watch('./src/assets/css/**/*.css', stylesDev);
+	watch('./src/assets/scss/**/*.scss', stylesDev);
 	watch('./src/assets/js/**', series(footerScriptsDev, Reload));
 	watch('./src/assets/img/**', series(copyImagesDev, Reload));
 	watch('./src/assets/fonts/**', series(copyFontsDev, Reload));
@@ -159,34 +115,75 @@ function copyFontsDev() {
 }
 
 function stylesDev() {
-	return src('./src/assets/css/style.css')
+	return src('./src/assets/scss/main.scss')
 		.pipe(plumber({ errorHandler: onError }))
 		.pipe(sourcemaps.init())
-		.pipe(postcss(pluginsListDev))
+		.pipe(sass.sync({
+			includePaths: [
+				'node_modules/',
+			],
+		}).on('error', sass.logError))
+		.pipe(minifyCSS())
 		.pipe(sourcemaps.write('.'))
-		.pipe(dest('./build/wordpress/wp-content/themes/' + themeName))
-		.pipe(browserSync.stream({ match: '**/*.css' }));
+		.pipe(rename('style.css'))
+		.pipe(dest(`./build/wordpress/wp-content/themes/${themeName}`))
+		.pipe(browserSync.stream({ match: './build/wordpress/wp-content/themes/${themeName}/**/*.css' }));
 }
 
 function headerScriptsDev() {
-	return src(headerJS)
+	return src('./src/assets/js/**/header-*.js')
 		.pipe(plumber({ errorHandler: onError }))
 		.pipe(sourcemaps.init())
-		.pipe(concat('header-bundle.js'))
+		.pipe(webpackStream({
+            config: {
+				mode: 'development',
+				output: {
+					filename: 'header-bundle.js',
+				},
+				plugins: [
+					new webpack.ProvidePlugin({
+						$: 'jquery',
+						jQuery: 'jquery',
+						'window.jQuery': 'jquery',
+						swal: 'swal',
+					}),
+				],
+			}
+        }))
+        .pipe(babel({
+            presets: [
+                '@babel/preset-env'
+            ]
+        }))
 		.pipe(sourcemaps.write('.'))
 		.pipe(dest('./build/wordpress/wp-content/themes/' + themeName + '/js'));
 }
 
 function footerScriptsDev() {
-	return src(footerJS)
+	return src('./src/assets/js/**/footer-*.js')
 		.pipe(plumber({ errorHandler: onError }))
 		.pipe(sourcemaps.init())
-		.pipe(
-			babel({
-				presets: ['@babel/preset-env'],
-			}),
-		)
-		.pipe(concat('footer-bundle.js'))
+		.pipe(webpackStream({
+            config: {
+				mode: 'development',
+				output: {
+					filename: 'footer-bundle.js',
+				},
+				plugins: [
+					new webpack.ProvidePlugin({
+						$: 'jquery',
+						jQuery: 'jquery',
+						'window.jQuery': 'jquery',
+						swal: 'swal',
+					}),
+				],
+			}
+        }))
+        .pipe(babel({
+            presets: [
+                '@babel/preset-env',
+            ]
+        }))
 		.pipe(sourcemaps.write('.'))
 		.pipe(dest('./build/wordpress/wp-content/themes/' + themeName + '/js'));
 }
@@ -226,30 +223,70 @@ function copyFontsProd() {
 }
 
 function stylesProd() {
-	return src('./src/assets/css/style.css')
-		.pipe(plumber({ errorHandler: onError }))
-		.pipe(postcss(pluginsListProd))
+	return gulp.src('./src/assets/scss/main.scss')
+		.pipe(sass.sync({
+			includePaths: [
+				'node_modules/',
+			],
+		}).on('error', sass.logError))
+		.pipe(minifyCSS())
+		.pipe(rename('style.css'))
 		.pipe(dest('./dist/themes/' + themeName));
 }
 
 function headerScriptsProd() {
-	return src(headerJS)
+	return src('./src/assets/js/**/header-*.js')
 		.pipe(plumber({ errorHandler: onError }))
-		.pipe(concat('header-bundle.js'))
-		.pipe(uglify())
+		.pipe(webpackStream({
+            config: {
+				mode: 'production',
+				output: {
+					filename: 'header-bundle.js',
+				},
+				plugins: [
+					new webpack.ProvidePlugin({
+						$: 'jquery',
+						jQuery: 'jquery',
+						'window.jQuery': 'jquery',
+						swal: 'swal',
+					}),
+				],
+			}
+        }))
+        .pipe(babel({
+            presets: [
+                '@babel/preset-env', 
+                'minify'
+            ]
+        }))
 		.pipe(dest('./dist/themes/' + themeName + '/js'));
 }
 
 function footerScriptsProd() {
-	return src(footerJS)
+	return src('./src/assets/js/**/footer-*.js')
 		.pipe(plumber({ errorHandler: onError }))
-		.pipe(
-			babel({
-				presets: ['@babel/preset-env'],
-			}),
-		)
-		.pipe(concat('footer-bundle.js'))
-		.pipe(uglify())
+		.pipe(webpackStream({
+            config: {
+				mode: 'production',
+				output: {
+					filename: 'footer-bundle.js',
+				},
+				plugins: [
+					new webpack.ProvidePlugin({
+						$: 'jquery',
+						jQuery: 'jquery',
+						'window.jQuery': 'jquery',
+						swal: 'swal',
+					}),
+				],
+			}
+        }))
+        .pipe(babel({
+            presets: [
+                '@babel/preset-env', 
+                'minify'
+            ]
+        }))
 		.pipe(dest('./dist/themes/' + themeName + '/js'));
 }
 
@@ -297,7 +334,7 @@ Utility Tasks
 const onError = err => {
 	beeper();
 	log(wpFy + ' - ' + errorMsg + ' ' + err.toString());
-	this.emit('end');
+	process.exit(1);
 };
 
 async function disableCron() {
@@ -339,27 +376,23 @@ exports.backup = series(Backup);
 /* -------------------------------------------------------------------------------------------------
 Messages
 -------------------------------------------------------------------------------------------------- */
-const date = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
-const errorMsg = '\x1b[41mError\x1b[0m';
-const warning = '\x1b[43mWarning\x1b[0m';
+const date = new Date().toLocaleDateString('en-US').replace(/\//g, '.');
+const errorMsg = '\x1b[41mError\x1b[0m ';
+const warning = '\x1b[43mWarning\x1b[0m ';
 const devServerReady =
 	'Your development server is ready, start the workflow with the command: $ \x1b[1mnpm run dev\x1b[0m';
 const buildNotFound =
 	errorMsg +
-	' ⚠️　- You need to install WordPress first. Run the command: $ \x1b[1mnpm run install:wordpress\x1b[0m';
+	'You need to install WordPress first. Run the command: $ \x1b[1mnpm run install:wordpress\x1b[0m';
 const filesGenerated =
-	'Your ZIP template file was generated in: \x1b[1m' +
-	__dirname +
-	'/dist/' +
-	themeName +
-	'.zip\x1b[0m - ✅';
+	`Your ZIP template file was generated in: \x1b[1m${__dirname}/dist/${themeName}.zip\x1b[0m -`;
 const pluginsGenerated =
-	'Plugins are generated in: \x1b[1m' + __dirname + '/dist/plugins/\x1b[0m - ✅';
+	`Plugins are generated in: \x1b[1m${__dirname}/dist/plugins/\x1b[0m -`;
 const backupsGenerated =
-	'Your backup was generated in: \x1b[1m' + __dirname + '/backups/' + date + '.zip\x1b[0m - ✅';
+	`Your backup was generated in: \x1b[1m${__dirname}/backups/${date}.zip\x1b[0m -`;
 const wpFy = '\x1b[42m\x1b[1mWordPressify\x1b[0m';
 const wpFyUrl = '\x1b[2m - http://www.wordpressify.co/\x1b[0m';
-const thankYou = 'Thank you for using ' + wpFy + wpFyUrl;
+const thankYou = `Thank you for using ${wpFy} ${wpFyUrl}`;
 
 /* -------------------------------------------------------------------------------------------------
 End of all Tasks
