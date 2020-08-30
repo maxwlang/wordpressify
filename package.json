@@ -189,7 +189,7 @@
 	},
 	"eslintIgnore": [
 		"dist/**/*.js",
-		"public/**/*.js",
+		"build/**/*.js",
 		"src/js/_plugins/**/*.js"
 	]
 }
